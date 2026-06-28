@@ -1,5 +1,6 @@
-local PLAYSTYLE = GetModConfigData("playstyle")
-local AUTO_SHOW_WARNINGS = GetModConfigData("auto_show_warnings")
+local MOD_NAME = "ai_realtime_guide"
+local DEFAULT_PLAYSTYLE = "new_player_survival"
+local DEFAULT_AUTO_SHOW_WARNINGS = true
 
 local SEASON_NAMES = {
     autumn = "Autumn",
@@ -14,6 +15,15 @@ local function Round(value)
     end
 
     return math.floor(value + 0.5)
+end
+
+local function GetConfig(name, default)
+    local ok, value = pcall(GetModConfigData, name, MOD_NAME)
+    if ok and value ~= nil then
+        return value
+    end
+
+    return default
 end
 
 local function ReadClassifiedValue(classified, current_name, max_name)
@@ -150,8 +160,9 @@ local function AddPlaystyleAdvice(advice, snapshot)
     local day = snapshot.world.day or 1
     local season = snapshot.world.season
     local inventory = snapshot.inventory
+    local playstyle = snapshot.playstyle
 
-    if PLAYSTYLE == "winter_prep" or (PLAYSTYLE == "new_player_survival" and season == "autumn" and day >= 12) then
+    if playstyle == "winter_prep" or (playstyle == "new_player_survival" and season == "autumn" and day >= 12) then
         if not HasAny(inventory, { "heatrock" }) then
             PushAdvice(advice, "high", "Prepare a thermal stone", "Winter usually starts around day 21. Make a thermal stone before long winter trips.")
         end
@@ -164,7 +175,7 @@ local function AddPlaystyleAdvice(advice, snapshot)
         return
     end
 
-    if PLAYSTYLE == "rush_science" then
+    if playstyle == "rush_science" then
         if CountAny(inventory, { "goldnugget" }) < 1 then
             PushAdvice(advice, "high", "Find gold", "Mine boulders with gold veins or trade with Pig King to unlock the science machine.")
         elseif CountAny(inventory, { "boards" }) < 4 or CountAny(inventory, { "cutstone" }) < 2 then
@@ -175,7 +186,7 @@ local function AddPlaystyleAdvice(advice, snapshot)
         return
     end
 
-    if PLAYSTYLE == "caves_ruins" then
+    if playstyle == "caves_ruins" then
         if not HasAny(inventory, { "lantern", "minerhat" }) then
             PushAdvice(advice, "high", "Bring stable cave light", "Craft a lantern or miner hat before entering caves.")
         end
@@ -203,8 +214,8 @@ local function BuildSnapshot()
     local player = GLOBAL.ThePlayer
 
     return {
-        playstyle = PLAYSTYLE,
-        auto_show_warnings = AUTO_SHOW_WARNINGS,
+        playstyle = GetConfig("playstyle", DEFAULT_PLAYSTYLE),
+        auto_show_warnings = GetConfig("auto_show_warnings", DEFAULT_AUTO_SHOW_WARNINGS),
         stats = ReadPlayerStats(player),
         inventory = CountInventoryPrefabs(player),
         world = ReadWorldState(),
